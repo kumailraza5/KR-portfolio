@@ -29,7 +29,7 @@ html[data-motion=off]{scroll-behavior:auto}html[data-motion=off] *,html[data-mot
 .portrait-stage{left:0;right:0;top:155px;bottom:75px;width:100%;height:auto;z-index:2;animation:none!important;translate:none;scale:none;opacity:1}
 .portrait-stage .halo{left:50%;top:12%;width:48%;height:72%;transform:translateX(-50%);opacity:.18}
 .portrait-depth{z-index:3;transform:rotateY(var(--mx)) rotateX(var(--my))}
-.portrait-depth .portrait-poster,.portrait-depth .portrait-video{height:100%;width:auto;max-width:58%;left:50%;bottom:0;transform:translateX(-50%);object-fit:contain;object-position:bottom;filter:contrast(1.02) saturate(.9);mask-image:linear-gradient(to bottom,#000 84%,transparent 100%)}
+.portrait-depth .portrait-poster,.portrait-depth .portrait-video{height:100%;width:auto;max-width:58%;left:50%;bottom:0;transform:translateX(-50%);object-fit:contain;object-position:bottom;filter:contrast(1.02) saturate(.9);-webkit-mask-image:linear-gradient(to bottom,#000 84%,transparent 100%);mask-image:linear-gradient(to bottom,#000 84%,transparent 100%)}
 .portrait-depth .portrait-poster.hidden{opacity:0}
 .portrait-depth .portrait-video{opacity:0}.portrait-depth .portrait-video.ready{opacity:1}
 .tech-orbits{z-index:1}.orbit-logo{width:52px;height:52px}.orbit-logo .brand-logo{width:29px;height:29px}.orbit-paths{opacity:.6}
@@ -73,3 +73,14 @@ html[data-motion=off]{scroll-behavior:auto}html[data-motion=off] *,html[data-mot
 /* Preserve complete storefront screenshots on desktop and mobile cards. */
 .project-art.storefront-preview{display:flex;align-items:center;padding:clamp(14px,2.5vw,32px);background:#e8e1d3}
 .project-art.storefront-preview>img{height:auto;max-height:100%;object-fit:contain;object-position:center;border-radius:3px;box-shadow:0 14px 32px #4b39252b}
+
+/* Hidden decoder video — in the DOM for GPU decoding but never visible. */
+/* Must NOT be display:none — that can prevent frame decoding on some engines. */
+.portrait-video-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;top:0;left:0}
+
+/* WebGL canvas — same layout, filter and bottom-fade mask as the portrait poster. */
+/* opacity:0 → transparent until the first valid frame is rendered (.ready). */
+.portrait-depth .portrait-canvas{position:absolute;height:100%;width:auto;max-width:58%;left:50%;bottom:0;transform:translateX(-50%);object-fit:contain;object-position:bottom;filter:contrast(1.02) saturate(.9);-webkit-mask-image:linear-gradient(to bottom,#000 84%,transparent 100%);mask-image:linear-gradient(to bottom,#000 84%,transparent 100%);opacity:0;pointer-events:none;display:block;transition:opacity .3s}
+.portrait-depth .portrait-canvas.ready{opacity:1}
+@media(max-width:900px){.portrait-depth .portrait-canvas{height:100%;max-width:65%;left:50%}}
+@media(max-width:600px){.portrait-depth .portrait-canvas{height:100%;max-width:78%;left:50%}}

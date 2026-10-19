@@ -3,7 +3,7 @@ import {useState,useEffect,useRef} from 'react';
 import HeroPortrait from './HeroPortrait';
 import TechOrbit from './TechOrbit';
 import {BrandLogo,TechLabel,TechText} from './Technology';
-const heroIntroSource = '/intro.webm';
+const heroIntroSource = '/intro-packed.mp4';
 import {ArrowUpRight,ArrowDown,ArrowRight,Plus,X,Menu, GitFork,UserRound,Camera,Mail,MoveUpRight,VolumeX,Orbit,Check,Copy} from 'lucide-react';
 const email='contact.kumailraza@gmail.com';
 type Project={name:string;category:string;subtitle:string;description:string;stack:string[];features:string[];image?:string;live?:string;code?:string;visual:string};
