@@ -118,3 +118,6 @@ html[data-motion=off]{scroll-behavior:auto}html[data-motion=off] *,html[data-mot
 .contact-cta-pill:hover{background:#17210e;color:var(--lime);transform:translateY(-2px)}
 .contact-timezone{display:block;margin-top:14px;font-size:10.5px;color:#354920;line-height:1.5;letter-spacing:.2px}
 
+
+/* Crawlable, dedicated SEO service page links */
+.seo-service-links{display:flex;align-items:center;flex-wrap:wrap;gap:14px 22px;padding:25px 0;border-top:1px solid var(--line)}.seo-service-links>span{font-size:11px;letter-spacing:1.5px;color:var(--muted)}.seo-service-links>a{display:inline-flex;align-items:center;gap:6px;color:var(--fg);font-size:13px;text-decoration:underline;text-decoration-color:var(--lime);text-underline-offset:4px}.seo-service-links>a:hover{color:var(--lime)}
