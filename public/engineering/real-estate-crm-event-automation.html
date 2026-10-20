@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10110e">
+<title>Building Event-Driven Real Estate CRM Automation with React &amp; Express | Kumail Raza</title>
+<meta name="description" content="Source-backed walkthrough of a React and Express CRM automation engine: lead events, rule evaluation, PostgreSQL execution logs, reminders and idempotency.">
+<meta name="author" content="Kumail Raza"><meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://devkumailraza.site/engineering/real-estate-crm-event-automation.html">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://devkumailraza.site/engineering/real-estate-crm-event-automation.html">
+<meta property="og:title" content="Building Event-Driven Real Estate CRM Automation with React &amp; Express | Kumail Raza">
+<meta property="og:description" content="Source-backed walkthrough of a React and Express CRM automation engine: lead events, rule evaluation, PostgreSQL execution logs, reminders and idempotency.">
+<meta property="og:image" content="https://devkumailraza.site/realestate.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/seo-services.css"><link rel="stylesheet" href="/case-studies.css"><link rel="stylesheet" href="/engineering.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","@id":"https://devkumailraza.site/engineering/real-estate-crm-event-automation.html#article","headline":"How I Structured Event-Driven Automation in a Real Estate CRM","description":"Source-backed walkthrough of a React and Express CRM automation engine: lead events, rule evaluation, PostgreSQL execution logs, reminders and idempotency.","mainEntityOfPage":"https://devkumailraza.site/engineering/real-estate-crm-event-automation.html","author":{"@id":"https://devkumailraza.site/#person"},"publisher":{"@id":"https://devkumailraza.site/#person"},"image":"https://devkumailraza.site/realestate.png","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","about":[{"@type":"Thing","name":"Event-driven architecture"},{"@type":"SoftwareApplication","name":"Real Estate Operations CRM"}],"keywords":["React","Express.js","TypeScript","Supabase","PostgreSQL","CRM automation","idempotency"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Portfolio","item":"https://devkumailraza.site/"},{"@type":"ListItem","position":2,"name":"Real Estate Operations case study","item":"https://devkumailraza.site/case-studies/real-estate-crm-saas.html"},{"@type":"ListItem","position":3,"name":"Engineering walkthrough","item":"https://devkumailraza.site/engineering/real-estate-crm-event-automation.html"}]},{"@type":"WebPage","@id":"https://devkumailraza.site/engineering/real-estate-crm-event-automation.html#webpage","url":"https://devkumailraza.site/engineering/real-estate-crm-event-automation.html","name":"Building Event-Driven Real Estate CRM Automation with React & Express | Kumail Raza","description":"Source-backed walkthrough of a React and Express CRM automation engine: lead events, rule evaluation, PostgreSQL execution logs, reminders and idempotency.","isPartOf":{"@id":"https://devkumailraza.site/#website"},"inLanguage":"en"}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="site-header"><div class="wrap"><a class="logo" href="/" aria-label="Kumail Raza portfolio home">kr<small>®</small></a>
+<nav class="top-nav" aria-label="Primary navigation"><a href="/">Portfolio</a><a href="/full-stack-development.html">Full-stack</a><a href="/case-studies.html">Case studies</a><a href="mailto:contact.kumailraza@gmail.com?subject=CRM%20automation%20project">Contact</a></nav></div></header>
+<main id="content">
+<div class="wrap breadcrumbs"><a href="/">Portfolio</a> / <a href="/case-studies/real-estate-crm-saas.html">Real Estate CRM case study</a> / Engineering walkthrough</div>
+<article>
+<header class="hero engineering-hero"><div class="wrap">
+<span class="eyebrow">Engineering notes · React · Express · PostgreSQL</span>
+<h1>How I structured event-driven automation in a real estate CRM</h1>
+<p class="lead">An implementation-focused walkthrough of a property CRM where lead updates, scheduled viewings and overdue tasks can trigger configurable workflows.</p>
+<p class="engineering-byline">Kumail Raza · Updated 20 October 2026 · Based on the <a href="https://github.com/kumailraza5/Real-Estate-Automation-Agent" rel="noopener noreferrer" target="_blank">public Real Estate Operations repository ↗</a></p>
+<p class="engineering-disclosure">This article was prepared with AI writing assistance, reviewed against the linked project source, and distinguishes implemented behavior from recommended improvements. It does not report production benchmarks.</p>
+<div class="actions"><a class="button primary" href="/case-studies/real-estate-crm-saas.html">Read the project case study ↗</a><a class="button" href="https://github.com/kumailraza5/Real-Estate-Automation-Agent" rel="noopener noreferrer" target="_blank">View source on GitHub ↗</a></div>
+</div></header>
+<div class="wrap engineering-article">
+<nav class="engineering-toc" aria-label="On this page"><strong>In this walkthrough</strong><ol>
+<li><a href="#architecture">Architecture and data flow</a></li>
+<li><a href="#lead-events">Emitting lead events</a></li>
+<li><a href="#workflow-rules">Evaluating workflow rules</a></li>
+<li><a href="#scheduled-work">Appointment and task schedulers</a></li>
+<li><a href="#reliability">Reliability limits and improvements</a></li>
+<li><a href="#lessons">What this taught me</a></li>
+</ol></nav>
+<div class="engineering-copy">
+<section id="architecture">
+<h2>1. Architecture: from a CRM action to a workflow</h2>
+<p>Property operations combine records that are related but not identical: a lead can become a client, a client can schedule a viewing, and an appointment can lead to a follow-up task. Putting every side effect inside a route handler would make those operations difficult to expand and test. The project therefore separates business endpoints from an automation engine and from background checks.</p>
+<p>In this codebase, the interface is built with React and TypeScript, while an Express API works with PostgreSQL/Supabase through Drizzle ORM. Zod schemas validate API inputs; shared workspace packages describe API and database contracts. The README also documents modules for properties, appointments, notifications, reporting and workflows.</p>
+<ol class="engineering-flow"><li><strong>Domain event</strong><span>Lead or appointment data changes in an API route.</span></li><li><strong>Workflow selection</strong><span>The engine finds active rules matching the event type.</span></li><li><strong>Condition evaluation</strong><span>Conditions are checked against the current event payload.</span></li><li><strong>Action dispatch</strong><span>Eligible workflows perform configured actions.</span></li><li><strong>Execution history</strong><span>Success and failure records are written for inspection.</span></li></ol>
+<p>This division matters for maintainability: routes focus on the domain request, workflows decide what extra action is appropriate, and a scheduler checks time-sensitive records independently.</p>
+</section>
+<section id="lead-events">
+<h2>2. A new lead emits a typed domain event</h2>
+<p>The <code>POST /leads</code> endpoint first parses the request with a Zod schema. After inserting the lead and recording an activity entry, it invokes the automation engine with a <code>LEAD_CREATED</code> event. The event includes a lead identifier and useful attributes such as status, score, source and assigned agent.</p>
+<pre class="engineering-code"><code>const parsed = CreateLeadBody.safeParse(req.body);
+if (!parsed.success) {
+  res.status(400).json({ error: parsed.error.message });
+  return;
+}
+
+// After the record and activity log are written:
+await automationEngine.triggerEvent(&quot;LEAD_CREATED&quot;, {
+  entityType: &quot;lead&quot;,
+  entityId: lead.id,
+  data: { status: lead.status, score: lead.score /* ... */ }
+});</code></pre>
+<p class="engineering-note"><strong>Code illustration:</strong> the compact extract above omits unrelated fields. Check <a href="https://github.com/kumailraza5/Real-Estate-Automation-Agent/blob/main/artifacts/api-server/src/routes/leads.ts#L72-L132" target="_blank" rel="noopener noreferrer">the full lead route ↗</a> for the complete source.</p>
+<p>The important point is that <code>LEAD_CREATED</code> is a domain event, not a button-specific callback. Other parts of the application can react to the same meaningful transition without duplicating logic inside each screen. The repository also emits events for lead updates and client creation.</p>
+</section>
+<section id="workflow-rules">
+<h2>3. Workflow rules combine event matches and conditions</h2>
+<p>The engine loads active workflows and selects rules whose trigger matches the event name, or the catch-all <code>ANY</code> trigger. Conditions can be represented as JSON rules or a simple textual expression. Examples in this domain might compare a lead's numeric score or budget; the actual configured rules determine what happens.</p>
+<pre class="engineering-code"><code>const matchingWorkflows = activeWorkflows.filter(
+  (wf) =&gt; wf.triggerEvent === triggerEvent || wf.triggerEvent === &quot;ANY&quot;
+);
+
+for (const wf of matchingWorkflows) {
+  let shouldExecute = evaluateConditions(wf.conditions, payload.data);
+  // When previousData is available, check the earlier condition state.
+  if (shouldExecute) await executeWorkflow(wf, payload);
+}</code></pre>
+<p class="engineering-note">Simplified pseudocode representing the selection loop in <a href="https://github.com/kumailraza5/Real-Estate-Automation-Agent/blob/main/artifacts/api-server/src/engine/automationEngine.ts#L24-L110" target="_blank" rel="noopener noreferrer">automationEngine.ts ↗</a>. The real implementation also checks earlier values supplied in <code>previousData</code> and records logging and error states.</p>
+<h3>Why previous state matters</h3>
+<p>Suppose a rule should run when a lead becomes qualified. On an update, the engine can compare the new payload with the previous values. If the condition was already true before the update, the current implementation can skip the repeated action. That prevents routine edits from re-triggering the same conditional transition unnecessarily.</p>
+<h3>Respecting manual decisions</h3>
+<p>In the agent-assignment action, the engine queries the current lead. When an agent is already assigned, it records a skipped automation action instead of replacing the manually assigned agent. This is a useful human-in-the-loop rule: automation should not silently override a staff member's explicit work.</p>
+<p>Successful and failed workflow attempts are written to an execution history table, with action outcomes recorded separately. The source also updates an execution counter and last-run timestamp. See the <a href="https://github.com/kumailraza5/Real-Estate-Automation-Agent/blob/main/artifacts/api-server/src/engine/automationEngine.ts#L169-L235" target="_blank" rel="noopener noreferrer">execution-history implementation ↗</a>.</p>
+</section>
+<section id="scheduled-work">
+<h2>4. Scheduled checks handle reminders and overdue tasks</h2>
+<p>Not every CRM event originates from a request. An appointment may simply move within the next 24 hours, or a task may pass its due date without a user opening the application. The scheduler handles these time-driven conditions.</p>
+<p>For appointment reminders, the code finds scheduled appointments starting between now and 24 hours ahead. It selects active <code>APPOINTMENT_REMINDER</code> workflows, loads records previously completed successfully for each workflow, and skips those appointment IDs before evaluating a reminder rule.</p>
+<pre class="engineering-code"><code>const alreadyProcessed = await db
+  .select({ id: workflowExecutionsTable.triggerEntityId })
+  .from(workflowExecutionsTable)
+  .where(/* workflow ID + entity type + successful status */);
+
+const processedIds = new Set(alreadyProcessed.map((r) =&gt; r.id));
+for (const appointment of upcoming) {
+  if (processedIds.has(appointment.id)) continue;
+  // Evaluate reminder conditions and execute eligible workflow.
+}</code></pre>
+<p class="engineering-note">Illustrative reduction of the scheduler's persisted-history check. The full <a href="https://github.com/kumailraza5/Real-Estate-Automation-Agent/blob/main/artifacts/api-server/src/engine/scheduler.ts#L10-L160" target="_blank" rel="noopener noreferrer">scheduler.ts source ↗</a> includes the complete database filters, payload construction and workflow execution.</p>
+<p>The overdue-task check follows a related path: it excludes completed tasks, calculates which due dates have passed, and checks historical successful executions before dispatching a <code>TASK_OVERDUE</code> workflow.</p>
+<p>In the repository, <code>startScheduler</code> schedules a first check shortly after startup and then runs both checks at a configurable interval (60 seconds by default). This is an implementation detail, not proof that the background process is continuously running in every deployment environment.</p>
+</section>
+<section id="reliability">
+<h2>5. Reliability: what works, and what still needs hardening</h2>
+<p>The implementation already has several useful safeguards: event-specific workflow selection, previous-value condition checks, manual-assignment preservation, success/failure history and scheduler-level processed-ID sets. Those reduce common accidental duplicates. They are <strong>not</strong> the same as a globally guaranteed exactly-once execution model.</p>
+<div class="engineering-grid">
+<div class="engineering-panel"><h3>What the source implements</h3><ul>
+<li>Active workflow filtering and rule evaluation</li><li>Persisted execution records and statuses</li><li>Successful-history checks in scheduled jobs</li><li>Per-process flags to prevent overlapping scheduler checks</li><li>Skipping automation that would replace manual assignment</li>
+</ul></div>
+<div class="engineering-panel"><h3>Improvements I would prioritize</h3><ul>
+<li>Database-enforced idempotency keys for each workflow/entity/event</li><li>Transactional writes or an outbox for reliable event delivery</li><li>Multi-worker coordination instead of only in-memory flags</li><li>Explicit retry policy and alerting for failed actions</li><li>Consistent timezone handling and tests around due-date boundaries</li>
+</ul></div>
+</div>
+<p>There is also an important rules-engine tradeoff: the current condition parser logs a parsing failure and defaults to permitting the workflow. A stricter, fail-closed approach—returning false for invalid conditions—would be safer when automatic actions modify CRM state. This is an engineering recommendation, not a claim that such a change has already been made.</p>
+<p>For a larger deployment, I would pair the database constraints with concurrency tests for overlapping updates, duplicate scheduler ticks and partial action failure. Performance and throughput should then be measured under realistic load before making any scaling claims.</p>
+</section>
+<section id="lessons">
+<h2>6. Lessons for a reusable automation architecture</h2>
+<p>The most useful abstraction in this project is not a particular dashboard component. It is the event-to-rule-to-action boundary: an API operation publishes meaningful domain context, while a separate engine chooses the response. That makes future workflow types easier to add without filling every endpoint with business-specific branches.</p>
+<p>Equally important is being specific about reliability. Avoiding duplicate work in a single scheduler tick is valuable, but production-grade idempotency needs persisted, concurrency-safe guarantees. Keeping those distinctions explicit makes architecture discussions more useful to engineering teams and clients.</p>
+<p>For the complete implementation, see the <a href="https://github.com/kumailraza5/Real-Estate-Automation-Agent" target="_blank" rel="noopener noreferrer">Real Estate Automation Agent repository ↗</a>. For a business-oriented overview of the product, see the <a href="/case-studies/real-estate-crm-saas.html">Real Estate Operations case study</a>. If you're building a similar CRM, dashboard or SaaS application, review my <a href="/full-stack-development.html">full-stack development services</a>.</p>
+</section>
+</div></div>
+<section class="cta"><div class="wrap"><h2>Building a CRM, SaaS dashboard or automation workflow?</h2><p>I work with React, Express, Supabase and PostgreSQL for remote development projects.</p><div class="actions"><a class="button primary" href="mailto:contact.kumailraza@gmail.com?subject=CRM%20automation%20consultation">Discuss your project ↗</a><a class="button" href="/case-studies.html">More project case studies</a></div></div></section>
+</article></main>
+<footer class="footer"><div class="wrap"><span>© 2026 Kumail Raza · Pakistan · Remote full-stack development</span><a href="mailto:contact.kumailraza@gmail.com">contact.kumailraza@gmail.com</a></div></footer>
+</body></html>
