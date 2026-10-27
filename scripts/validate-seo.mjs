@@ -15,7 +15,9 @@ must(new Set(urls).size === urls.length, 'Duplicate sitemap URLs.');
 must(urls.includes(site + '/'), 'Homepage absent from sitemap.');
 must(sitemap.includes('http://www.sitemaps.org/schemas/sitemap/0.9'), 'Missing sitemap namespace.');
 must(existsSync('public/robots.txt'), 'Missing robots.txt.');
-must(read('public/robots.txt').includes('Sitemap: ' + site + '/sitemap.xml'), 'Robots sitemap reference is wrong.');
+if (existsSync('public/robots.txt')) {
+  must(read('public/robots.txt').includes('Sitemap: ' + site + '/sitemap.xml'), 'Robots sitemap reference is wrong.');
+}
 
 for (const url of urls) {
   let parsed;
